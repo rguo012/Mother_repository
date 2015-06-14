@@ -1,0 +1,70 @@
+cd Python/
+   99  git clone git@github.com:YJonmo/Mother_repository.git
+  100  git add 
+  101  cd Mother_repository/
+  102  git add 
+  103  git add
+  104  git add .
+  105  ls
+  106  cp /home/fati/Python/Library/PLACE-master/README.txt 
+  107  cp /home/fati/Python/Library/PLACE-master/README.txt cd
+  108  ls
+  109  cp /home/fati/Python/Library/PLACE-master/README.txt README.TXt
+  110  git add
+  111  git add README.TXt 
+  112  git commit 
+  113  sudo git commit 
+  114  git commit README.TXt 
+  115  git commit README.TXt 
+  116  git commit y.jonmo@auckland.ac.nz
+  117  git config y.jonmo@auckland.ac.nz
+  118  git config --global y.jonmo@auckland.ac.nz
+  119  git commit 
+  120  git push -a
+  121  git push
+  122  ls
+  123  git add -p
+  124  git add README.TXt 
+  125  git commit README.TXt 
+  126  git commit
+  127  ssh -vT git@github.com
+  128  ssh -T git@github.com
+  129  sudo su
+  130  cd Mother_repository/
+  131  git commit
+  132  git commit -a
+  133  git config --global user.email "y.jonmo@auckland.ac.nz"
+  134  git config --global user.name YJonmo
+  135  git config --global user.email y.jonmmo@auckland.ac.nz
+  136  git config -l
+  137  git commit
+  138  git psuh
+  139  git push
+  140  ls
+  141  git add
+  142  git add README.TXt 
+  143  git commit
+  144  git push
+  145  cd ..
+  146  get clone git@github.com:YJonmo/Mother_repository.git
+  147  git clone git@github.com:YJonmo/Mother_repository.git
+  148  cd ..
+  149  git clone git@github.com:YJonmo/Mother_repository.git
+  150  nano README.txt
+  151  ls
+  152  mv README.txt Mother_repository/
+  153  cd Mother_repository/
+  154  ls
+  155  git add README.txt 
+  156  git commit -a
+  157  git push
+  158  git remote add origin git@github.com:YJonmo/Mother_repository.git
+  159  git push -u origin master
+  160  gedit Read.txt
+  161  ls
+  162  git add Read.txt 
+  163  git commit
+  164  git push
+  165  history
+  166  history
+
