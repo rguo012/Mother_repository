@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 
 Spec_handle = SB.Detect()
 DAQ_handle = DAQ.Init()
-Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000]
-No_Sample = 1400 # Number of samples for Photodiod per iteration of the laser exposer
+Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000]
+No_Sample = 1800 # Number of samples for Photodiod per iteration of the laser exposer
 
 SB_Is_Done = Value('i', 0)
 SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
@@ -42,7 +42,6 @@ def SB_Init(Spec_handle,Integration_time, Trigger_mode):
 
 def SB_Main(Spec_handle,No_itteration):
     I = 0
-    print 'helloooooooooooo'
     while I < No_itteration:
         #try:
         print 'spetp 1'

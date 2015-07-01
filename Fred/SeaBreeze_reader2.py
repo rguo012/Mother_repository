@@ -13,8 +13,17 @@ print 'Serial number:%s' % spec.serial_number
 print 'Model:%s' % spec.model
 print 'minimum_integration_time_micros:' 
 spec.minimum_integration_time_micros
+# ############################Flushes the spectrumeter###################
+spec.trigger_mode(0)            #Flushing the stuff!
+spec.integration_time_micros(10000)
+spec.wavelengths()
+Intensities = spec.intensities(correct_dark_counts=True, correct_nonlinearity=True)
+Intensities = spec.intensities(correct_dark_counts=True, correct_nonlinearity=True)
+# ################################ Done #################################
 
-spec.trigger_mode(0)
+
+
+spec.trigger_mode(3)
 spec.integration_time_micros(10000)
 spec.wavelengths()
 
@@ -64,6 +73,7 @@ for I in range(10):
     #Output.write( str(time.time()) + "\n")
     f_handle.close()
     print Intensities[0]
+spec.close()
 Output.close()
 
 #plt.close('all')
@@ -118,4 +128,3 @@ for I in range(200):
 
 #plt.close('all') '''
 
-spec.close()

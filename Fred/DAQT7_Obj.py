@@ -7,21 +7,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
-global read_signal
-read_signal = np.zeros(1000)
-global read_time
-read_time   = np.zeros(1000)
-'''
-Output = open("Output.txt", 'w')
-Output.write( str(time.time()) + "\n")
-Output.close()
-'''
-#read_signal = np.zeros(500)
-#read_time   = np.zeros(500)
 
-#DAC0 setup
-# Setup and call eWriteName to write a value to the LabJack.
-def Init():
+
+''' 
+Initialization and detection of the LabJack device
+'''
+def Init():                 
     # Open first found LabJack
     handle = ljm.open(ljm.constants.dtANY, ljm.constants.ctANY, "ANY")
     #handle = ljm.openS("ANY", "ANY", "ANY")
@@ -37,65 +28,44 @@ def Init():
     ljm.eWriteNames(handle, numFrames, names, aValues)
     #return handle, Info
     return handle
+ 
 
+''' 
+Writing analogue values (0 to 5 v) in the DAC ports
+'''
+def DAC_Write(handle,DAC, Volt): # Volt is an integer (e.g., can be used for clossing or openning Shutter: 0=close, 5=open)
+    ljm.eWriteName(handle, DAC, Volt)
+    return
+
+
+''' 
+Reading analogue inpute values (0 to 10 v) in the AIN ports. 
+To change the range of input voltage or speed of conversion, below lines should be changed in the intialization:
+numFrames = 3
+names = ["AIN0_NEGATIVE_CH", "AIN0_RANGE", "AIN0_RESOLUTION_INDEX"]
+aValues = [199, 2, 1]
+ljm.eWriteNames(handle, numFrames, names, aValues) 
+'''
+def AIN_Read(handle,AIN): 
+    return ljm.eReadNames(handle,1 , [AIN])
+
+
+'''
+Writing 1 or 0 in the digital ports. Digital port will 3.3v if State = 1 and 0v if State = 0. 
+'''
+def Digital_Ports_Write(handle,Port,State): 
+    ljm.eWriteName(handle, Port, State)
+    return
+
+'''
+Reading the State of the digital ports.  
+'''
+def Digital_Ports_Read(handle,Port): 
+    return ljm.eReadName(handle, Port)
+    
+
+'''
+Closing the device
+'''
 def Close(handle):
     ljm.close(handle)
-
-    
-def DAC_Volt(handle,Volt): # Volt is an integer (Used for clossing or openning Shutter: 0=close, 5=open). DO NOT use this when the Main function is running
-    name = "DAC0"
-    aValue = [Volt] # in V
-    ljm.eWriteName(handle, name, aValue[0])
-    return
-
-# Setup and call eReadNames to read AINs from the LabJack.
-
-
-#Main loop
-
-def Main(handle,No_Sample):
-    
-    numFrames = 1
-    names = ["AIN0"]
-   # read_signal = np.zeros(No_Sample)
-   # read_time = np.zeros(No_Sample)
-
-    time.sleep(1)    
-    
-    I = 0    
-    ljm.eWriteName(handle, "DAC0", 5)
-    results = ljm.eReadNames(handle, numFrames, names)
-    read_signal[I] = results[0]
-    read_time[I] = time.time()
-    I += 1
-    
-    while I < No_Sample:
-
-        results = ljm.eReadNames(handle, numFrames, names)
-        read_signal[I] = results[0]
-        read_time[I] = time.time()
-        '''    
-        plt.figure(1)
-        plt.clf()
-        plt.plot(read_signal)
-        #plt.plot(WaveLengths[1::], Intensities[1::])
-        plt.pause(0.1) 
-        '''
-        I += 1    
-    
-    ljm.eWriteName(handle, "DAC0", 0)   
-    ljm.close(handle) 
-    Output = open("Output2.txt", 'w')
-    Output.write("\n")
-    Output.close()
-    f_handle = file('Output2.txt', 'a')
-    np.savetxt(f_handle, (read_time, read_signal))
-    #Output.write( str(time.time()) + "\n")
-    f_handle.close()
-    
-    return
-
-
-def Return_Vals(handle):   
-    return read_signal, read_time
-  

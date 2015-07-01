@@ -93,22 +93,38 @@ from multiprocessing import Process, Value, Array
 import numpy as np
 import time
 
-def f(n,):
-    #a[:] = np.ones(shape=(6,1), dtype=float)[:]
-    print arr[:]
+def f1(n,):
+    for I in range(5):
+        time.sleep(.1)
+        print 'process 1 is running'
     arr[:] = np.ones(shape=(6,1), dtype=float)
-    
+    Process1_Done.value = True
+
+def f2(n,):
+    while Process1_Done.value == False:
+        print 'process 2 is running'
+        time.sleep(0.1) 
+    else: 
+        arr[:] = np.array(arr[:])*2
+        Process2_Done.value = True
+        
+
 if __name__ == '__main__':
-    #tmp =  np.zeros(shape=(6,1), dtype=float)
-    #print tmp
 
     arr = Array('f', np.zeros(shape=(6,1), dtype=float))
+    Process1_Done = Value('i', False)
+    Process2_Done = Value('i', False)    
     
-    p1 = Process(target=f, args=(1,)).start()
-    time.sleep(.1)
-   # p1.start()    
-   # p1.join()
-    print arr[:]
-    
-    print 'done'
-    print arr[:]
+    p1 = Process(target=f1, args=(1,)).start()
+    p1 = Process(target=f2, args=(1,)).start()
+    # p1.start()    
+    # p1.join()
+    for I in range(100):
+        time.sleep(.1)
+        if Process2_Done.value == True :
+            print 'Now both processes are done'
+            print arr[:]
+            print I
+            break
+        else:
+            print arr[:]

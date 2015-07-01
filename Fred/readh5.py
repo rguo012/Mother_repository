@@ -14,6 +14,8 @@ print len(dataset2)
 '''
 
 
+
+'''
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +36,7 @@ Spec_intensities = f.create_dataset('Spectrumeter/Intensities', data = intensiti
 #Spec_intensities = f.create_dataset('Spectrumeter/Intensities', (len(wavelength),2), dtype='f')
 #Spec_intensities = intensities
 f.close()
-
+'''
 
 
 
@@ -43,29 +45,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-f = h5py.File('Opterode_RecordingAt1434939786.hdf5','r')
+f = h5py.File('Opterode_RecordingAt1435718038.hdf5','r')
 
 ks = f.keys()
 
 len(f[ks[0]].values())
-(f[ks[0]].values()[0]).shape
-(f[ks[0]].values()[1]).shape
-(f[ks[0]].values()[2]).shape
+(f[ks[1]].values()[0]).shape
+(f[ks[1]].values()[1]).shape
+(f[ks[1]].values()[2]).shape
 
 Intensities = f[ks[1]].values()[0]
 Spectrumeter = np.array(f[ks[1]].values()[1])
 Wavelength = np.array(f[ks[1]].values()[2])
 
+DAC_Reading = f[ks[0]].values()[0]
 
-
+plt.plot(DAC_Reading)
+'''
 for index,key in enumerate(ks[:]):
     print index, key
     data = np.array(f[key].values())
     plt.plot(data.ravel())
-
-plt.plot(f[key].values()[2][:])
-
-
-plt.show
-
-
+'''
