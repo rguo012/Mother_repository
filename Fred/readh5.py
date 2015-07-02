@@ -45,7 +45,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-f = h5py.File('Opterode_RecordingAt1435718038.hdf5','r')
+f = h5py.File('Opterode_RecordingAt1435804384.hdf5','r')
 
 ks = f.keys()
 

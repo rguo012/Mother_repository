@@ -7,112 +7,114 @@ from multiprocessing import Process, Pipe, Value, Array
 from labjack import ljm
 import SeaBreeze_Obj as SB
 import matplotlib.pyplot as plt
+time_start =  time.time()
 
 
-Spec_handle = SB.Detect()
-DAQ_handle = DAQ.Init()
-Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000]
-No_Sample = 1400 # Number of samples for Photodiod per iteration of the laser exposer
+def SB_Init_Process(Spec_handle,Integration_time, Trigger_mode):
+    print 'Spectrometer is initialized'
+    SB.Init(Spec_handle,Integration_time, Trigger_mode)
+    
 
-SB_Is_Done = Value('i', 0)
-SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
-SB_Is_Done.value = 0 
-SB_Full_Records = np.zeros(shape=(len(Spec_handle.wavelengths()), len(Integration_list) ), dtype = float )
-#np.random.rand(len(Integration_list), len(Spec_handle.wavelengths()))
+def SB_Read_Process(Spec_handle):
 
-read_signal = np.zeros(No_Sample*len(Integration_list))
-read_time   = np.zeros(No_Sample*len(Integration_list))
-
-File_name = "Opterode_RecordingAt" + str('%i' %time.time())+ ".hdf5"
-f = h5py.File(File_name, "w")
-Spec_sub1 = f.create_group("Spectrumeter")
-Spec_specification = Spec_sub1.create_dataset("Spectrumeter", (10,), dtype='f')
-Spec_specification.attrs['Serial Number'] = np.string_(Spec_handle.serial_number)
-Spec_specification.attrs['Model'] = np.string_(Spec_handle.model)
-Spec_wavelength = f.create_dataset('Spectrumeter/Wavelength', data = Spec_handle.wavelengths()) 
-
-
-
-
-
-def SB_Init(Spec_handle,Integration_time, Trigger_mode):
-    print 'SB is initialized'
-    Spec_handle.trigger_mode(Trigger_mode)
-    Spec_handle.integration_time_micros(Integration_time)
-   # Spec_handle.wavelengths()
-
-def SB_Main(Spec_handle,No_itteration):
-    I = 0
-    print 'helloooooooooooo'
-    while I < No_itteration:
-        #try:
-        print 'spetp 1'
-        Intensities = Spec_handle.intensities(correct_dark_counts=True, correct_nonlinearity=True)
-        Intensities[0] = np.float(time.time())     
-        SB_Is_Done.value = 1
-        print 'spetp 2'    
-        #print Intensities   
-        I += 1
-        
+    print 'Spectrumeter is waiting'
+    Correct_dark_counts = True
+    Correct_nonlinearity = True
+    Intensities = SB.Read(Spec_handle, Correct_dark_counts, Correct_nonlinearity)   
+    SB_Is_Done.value = 1   
+    #print Intensities 
     SB_Current_Record[:] = Intensities
-    print "Is Done"
+    print "Intensities are read"
     return
 
 
+def DAQ_Read():
+    results = DAQ.AIN_Read(DAQ_handle, "AIN0")
+    read_signal[DAC_Sampl_Index] = results[0]
+    read_time = time.time()
+    return results[0], read_time
 
-I = 0    
-II = 0
-numFrames = 1
-names = ["AIN0"]
-results = ljm.eReadNames(DAQ_handle, numFrames, names)
-read_signal[I] = results[0]
-read_time[I] = time.time()
-I += 1
 
-for Integration_index in Integration_list:
+if __name__ == "__main__":
+    ''' ################# Detecting the spectrometer and the DAQ ###########'''
+    Spec_handle = SB.Detect()
+    DAQ_handle = DAQ.Init()
+    DAQ.DAC_Write(DAQ_handle, "DAC1", 0)       #Laser is off
+    DAQ.DAC_Write(DAQ_handle, "DAC0", 0)       #Shutter is close
     
-    #SB.Init(Spec_handle,Integration_index,3)
-    Process(target=SB_Init, args=(Spec_handle,Integration_index,3)).start()
-    Process(target=SB_Main, args=(Spec_handle,1)).start()
     
-    Half_Cycle = No_Sample*(II) + No_Sample/2
-    Full_Cycle = No_Sample*(II) + No_Sample
+    ''' ##################### Initializing the variables ###################'''
+    Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000]
+    No_Sample = 1400 # Number of samples for Photodiod per iteration of the laser exposer
+    SB_Is_Done = Value('i', 0)
+    SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
+    SB_Is_Done.value = 0 
+    SB_Full_Records = np.zeros(shape=(len(Spec_handle.wavelengths()), len(Integration_list) ), dtype = float )
+    read_signal = np.zeros(No_Sample*len(Integration_list))
+    read_time   = np.zeros(No_Sample*len(Integration_list))
     
-    ljm.eWriteName(DAQ_handle, "DAC1", 5)       #Laser is on
     
-    results = ljm.eReadNames(DAQ_handle, numFrames, names)
-    read_signal[I] = results[0]
-    read_time[I] = time.time()
-    I += 1
+    ''' ########### The file containing the records (HDF5 format)###########'''
+    File_name = "Opterode_RecordingAt" + str('%i' %time.time())+ ".hdf5"
+    f = h5py.File(File_name, "w")
+    Spec_sub1 = f.create_group("Spectrumeter")
+    Spec_specification = Spec_sub1.create_dataset("Spectrumeter", (10,), dtype='f')
+    Spec_specification.attrs['Serial Number'] = np.string_(Spec_handle.serial_number)
+    Spec_specification.attrs['Model'] = np.string_(Spec_handle.model)
+    Spec_wavelength = f.create_dataset('Spectrumeter/Wavelength', data = Spec_handle.wavelengths())
     
-    print 'Integration_index: %i' %Integration_index
-    while I < Half_Cycle:
-        results = ljm.eReadNames(DAQ_handle, numFrames, names)
-        read_signal[I] = results[0]
-        read_time[I] = time.time()
-        I += 1    
-    ljm.eWriteName(DAQ_handle, "DAC0", 5)       #Shutter opens in ~22ms since now
-    while I < Full_Cycle:
-        if SB_Is_Done.value == 1:
-            ljm.eWriteName(DAQ_handle, "DAC1", 0)       #Laser off
-            ljm.eWriteName(DAQ_handle, "DAC0", 0)       #Shutter close
-            SB_Is_Done.value = 0
-        results = ljm.eReadNames(DAQ_handle, numFrames, names)
-        read_signal[I] = results[0]
-        read_time[I] = time.time()
-        I += 1    
-    
-    SB_Full_Records[:,II] = SB_Current_Record[:]
-    #plt.plot(SB_Current_Record[1:])
-    #plt.pause(1)
-    II += 1
-    
+    ''' ############# Inititalizing the main loop for optrode ##############'''
+    DAC_Sampl_Index = 0    
+    Spec_Sampl_Index = 0
+    numFrames = 1
 
-Spec_intensities = f.create_dataset('Spectrumeter/Intensities', data = SB_Full_Records)
-Spec_intensities = f.create_dataset('DAQT7/DAC_Readings', data = read_signal)
-Spec_intensities = f.create_dataset('DAQT7/DAC_Time_Stamps', data = read_time)
-f.close()
+    
+    ''' ## The main loop for recording the spectrometer and the photodiod ##'''
+    for Integration_index in Integration_list:
+        
+        ''' ####### First process for initializing the spectrometer ########'''
+        P1 = Process(target=SB_Init_Process, args=(Spec_handle,Integration_index,3))
+        P1.start()
+        ''' ########## First process for reading the spectrometer ##########'''
+        P2 = Process(target=SB_Read_Process, args=(Spec_handle,))
+        P2.start()
+        Half_Cycle = No_Sample*(Spec_Sampl_Index) + No_Sample/2
+        Full_Cycle = No_Sample*(Spec_Sampl_Index) + No_Sample
+        
+        DAQ.DAC_Write(DAQ_handle, "DAC1", 5)       #Laser is on
+        
+        print 'Integration_index: %i' %Integration_index
+        while DAC_Sampl_Index < Half_Cycle:
+            read_signal[DAC_Sampl_Index], read_time[DAC_Sampl_Index] = DAQ_Read()
+            DAC_Sampl_Index += 1    
+        DAQ.DAC_Write(DAQ_handle, "DAC0", 5)       #Shutter opens in ~22ms since now
+        while DAC_Sampl_Index < Full_Cycle:
+            if SB_Is_Done.value == 1:               # At this point the spectrometer is done
+                DAQ.DAC_Write(DAQ_handle, "DAC1", 0)       #Laser is off
+                DAQ.DAC_Write(DAQ_handle, "DAC0", 0)       #Shutter is close
+                SB_Is_Done.value = 0
+            read_signal[DAC_Sampl_Index], read_time[DAC_Sampl_Index] = DAQ_Read()
+            DAC_Sampl_Index += 1    
+        
+        SB_Full_Records[:,Spec_Sampl_Index] = SB_Current_Record[:]
+        Spec_Sampl_Index += 1
+        
+        '''### An if statement to check if the spectrometer is stalled #### '''
+        if P2.is_alive():
+            P2.terminate()
+            print "############################################################"    
+            print "Recording failed, spectrumeter is stalled. Disconnect both spectromer and the DAQ and rerun the code."
+            break
+        
+    ''' ########### Saving the recorded signals in HDF5 format ############ '''
+    Spec_intensities = f.create_dataset('Spectrumeter/Intensities', data = SB_Full_Records)
+    Spec_intensities = f.create_dataset('DAQT7/DAC_Readings', data = read_signal)
+    Spec_intensities = f.create_dataset('DAQT7/DAC_Time_Stamps', data = read_time)
+    f.close()
+        
 
-SB.Close(Spec_handle)
-DAQ.Close(DAQ_handle)
+    SB.Close(Spec_handle)
+    DAQ.Close(DAQ_handle)
 
+    time_end = time.time()
+    print 'Duration of the session: %.3f s' %(time_end - time_start)

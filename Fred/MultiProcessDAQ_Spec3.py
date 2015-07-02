@@ -7,12 +7,12 @@ from multiprocessing import Process, Pipe, Value, Array
 from labjack import ljm
 import SeaBreeze_Obj as SB
 import matplotlib.pyplot as plt
-
+time_s =  time.time()
 
 Spec_handle = SB.Detect()
 DAQ_handle = DAQ.Init()
-Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000]
-No_Sample = 1800 # Number of samples for Photodiod per iteration of the laser exposer
+Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000]
+No_Sample = 1400 # Number of samples for Photodiod per iteration of the laser exposer
 
 SB_Is_Done = Value('i', 0)
 SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
@@ -36,24 +36,26 @@ Spec_wavelength = f.create_dataset('Spectrumeter/Wavelength', data = Spec_handle
 
 
 def SB_Init(Spec_handle,Integration_time, Trigger_mode):
-    print 'SB is initialized'
+#    print 'SB is initialized'
     Spec_handle.trigger_mode(Trigger_mode)
     Spec_handle.integration_time_micros(Integration_time)
+   # Spec_handle.wavelengths()
 
 def SB_Main(Spec_handle,No_itteration):
     I = 0
+#    print 'helloooooooooooo'
     while I < No_itteration:
         #try:
-        print 'spetp 1'
+#        print 'spetp 1'
         Intensities = Spec_handle.intensities(correct_dark_counts=True, correct_nonlinearity=True)
         Intensities[0] = np.float(time.time())     
         SB_Is_Done.value = 1
-        print 'spetp 2'    
+#        print 'spetp 2'    
         #print Intensities   
         I += 1
         
     SB_Current_Record[:] = Intensities
-    print "Is Done"
+#    print "Is Done"
     return
 
 
@@ -69,6 +71,7 @@ I += 1
 
 for Integration_index in Integration_list:
     
+    #SB.Init(Spec_handle,Integration_index,3)
     Process(target=SB_Init, args=(Spec_handle,Integration_index,3)).start()
     Process(target=SB_Main, args=(Spec_handle,1)).start()
     
@@ -82,7 +85,7 @@ for Integration_index in Integration_list:
     read_time[I] = time.time()
     I += 1
     
-    print 'Integration_index: %i' %Integration_index
+#    print 'Integration_index: %i' %Integration_index
     while I < Half_Cycle:
         results = ljm.eReadNames(DAQ_handle, numFrames, names)
         read_signal[I] = results[0]
@@ -113,3 +116,5 @@ f.close()
 SB.Close(Spec_handle)
 DAQ.Close(DAQ_handle)
 
+time_e = time.time()
+print time_e - time_s

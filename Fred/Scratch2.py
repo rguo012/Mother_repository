@@ -7,48 +7,45 @@ from multiprocessing import Process, Pipe, Value, Array
 from labjack import ljm
 import SeaBreeze_Obj as SB
 import matplotlib.pyplot as plt
+time_start =  time.time()
 
 
+def SB_Init_Process(Spec_handle,Integration_time, Trigger_mode):
+    print 'Spectrometer is initialized'
+    SB.Init(Spec_handle,Integration_time, Trigger_mode)
+    
 
+def SB_Read_Process(Spec_handle):
 
-
-
-
-
-def SB_Init(Spec_handle,Integration_time, Trigger_mode):
-    print 'SB is initialized'
-    Spec_handle.trigger_mode(Trigger_mode)
-    Spec_handle.integration_time_micros(Integration_time)
-
-def SB_Main(Spec_handle,No_itteration):
-    I = 0
-    while I < No_itteration:
-        #try:
-        print 'spetp 1'
-        Intensities = Spec_handle.intensities(correct_dark_counts=True, correct_nonlinearity=True)
-        Intensities[0] = np.float(time.time())     
-        SB_Is_Done.value = 1
-        print 'spetp 2'    
-        #print Intensities   
-        I += 1
-        
+    print 'Spectrumeter is waiting'
+    Correct_dark_counts = True
+    Correct_nonlinearity = True
+    Intensities = SB.Read(Spec_handle, Correct_dark_counts, Correct_nonlinearity)   
+    SB_Is_Done.value = 1   
+    #print Intensities 
     SB_Current_Record[:] = Intensities
-    print "Is Done"
+    print "Intensities are read"
     return
 
 
+def DAQ_Read():
+    results = DAQ.AIN_Read(DAQ_handle, "AIN0")
+    read_signal[DAC_Sampl_Index] = results[0]
+    read_time = time.time()
+    return results[0], read_time
 
 
 if __name__ == "__main__":
-    # ################### Detecting the spectrometer and the DAQ ##############
+    ''' ################# Detecting the spectrometer and the DAQ ###########'''
     Spec_handle = SB.Detect()
     DAQ_handle = DAQ.Init()
-    ljm.eWriteName(DAQ_handle, "DAC1", 0)       #Laser is off
-    ljm.eWriteName(DAQ_handle, "DAC0", 0)       #Shutter is close
+    DAQ.DAC_Write(DAQ_handle, "DAC1", 0)       #Laser is off
+    DAQ.DAC_Write(DAQ_handle, "DAC0", 0)       #Shutter is close
     
-    # ####################### Initializing the variables ######################
+    
+    ''' ##################### Initializing the variables ###################'''
     Integration_list = [8000, 16000, 32000, 64000, 128000, 256000, 512000]
-    No_Sample = 1800 # Number of samples for Photodiod per iteration of the laser exposer
+    No_Sample = 1400 # Number of samples for Photodiod per iteration of the laser exposer
     SB_Is_Done = Value('i', 0)
     SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
     SB_Is_Done.value = 0 
@@ -57,7 +54,7 @@ if __name__ == "__main__":
     read_time   = np.zeros(No_Sample*len(Integration_list))
     
     
-    # ############# The file containing the records (HDF5 format)##############
+    ''' ########### The file containing the records (HDF5 format)###########'''
     File_name = "Opterode_RecordingAt" + str('%i' %time.time())+ ".hdf5"
     f = h5py.File(File_name, "w")
     Spec_sub1 = f.create_group("Spectrumeter")
@@ -66,60 +63,58 @@ if __name__ == "__main__":
     Spec_specification.attrs['Model'] = np.string_(Spec_handle.model)
     Spec_wavelength = f.create_dataset('Spectrumeter/Wavelength', data = Spec_handle.wavelengths())
     
-    # ############### Inititalizing the main loop for optrode #################
-    DAC_Time_Index = 0    
-    Spec_Time_Index = 0
+    ''' ############# Inititalizing the main loop for optrode ##############'''
+    DAC_Sampl_Index = 0    
+    Spec_Sampl_Index = 0
     numFrames = 1
 
-    results = ljm.eReadNames(DAQ_handle, numFrames, "AIN0")
-    read_signal[DAC_Time_Index] = results[0]
-    read_time[DAC_Time_Index] = time.time()
-    DAC_Time_Index += 1
     
-    
+    ''' ## The main loop for recording the spectrometer and the photodiod ##'''
     for Integration_index in Integration_list:
         
-        Process(target=SB_Init, args=(Spec_handle,Integration_index,3)).start()
-        Process(target=SB_Main, args=(Spec_handle,1)).start()
+        ''' ####### First process for initializing the spectrometer ########'''
+        P1 = Process(target=SB_Init_Process, args=(Spec_handle,Integration_index,3))
+        P1.start()
+        ''' ########## First process for reading the spectrometer ##########'''
+        P2 = Process(target=SB_Read_Process, args=(Spec_handle,))
+        P2.start()
+        Half_Cycle = No_Sample*(Spec_Sampl_Index) + No_Sample/2
+        Full_Cycle = No_Sample*(Spec_Sampl_Index) + No_Sample
         
-        Half_Cycle = No_Sample*(Spec_Time_Index) + No_Sample/2
-        Full_Cycle = No_Sample*(Spec_Time_Index) + No_Sample
-        
-        ljm.eWriteName(DAQ_handle, "DAC1", 5)       #Laser is on
-        
-        results = ljm.eReadNames(DAQ_handle, numFrames, names)
-        read_signal[DAC_Time_Index] = results[0]
-        read_time[DAC_Time_Index] = time.time()
-        DAC_Time_Index += 1
+        DAQ.DAC_Write(DAQ_handle, "DAC1", 5)       #Laser is on
         
         print 'Integration_index: %i' %Integration_index
-        while DAC_Time_Index < Half_Cycle:
-            results = ljm.eReadNames(DAQ_handle, numFrames, names)
-            read_signal[DAC_Time_Index] = results[0]
-            read_time[DAC_Time_Index] = time.time()
-            DAC_Time_Index += 1    
-        ljm.eWriteName(DAQ_handle, "DAC0", 5)       #Shutter opens in ~22ms since now
-        while DAC_Time_Index < Full_Cycle:
-            if SB_Is_Done.value == 1:
-                ljm.eWriteName(DAQ_handle, "DAC1", 0)       #Laser off
-                ljm.eWriteName(DAQ_handle, "DAC0", 0)       #Shutter close
+        while DAC_Sampl_Index < Half_Cycle:
+            read_signal[DAC_Sampl_Index], read_time[DAC_Sampl_Index] = DAQ_Read()
+            DAC_Sampl_Index += 1    
+        DAQ.DAC_Write(DAQ_handle, "DAC0", 5)       #Shutter opens in ~22ms since now
+        while DAC_Sampl_Index < Full_Cycle:
+            if SB_Is_Done.value == 1:               # At this point the spectrometer is done
+                DAQ.DAC_Write(DAQ_handle, "DAC1", 0)       #Laser is off
+                DAQ.DAC_Write(DAQ_handle, "DAC0", 0)       #Shutter is close
                 SB_Is_Done.value = 0
-            results = ljm.eReadNames(DAQ_handle, numFrames, names)
-            read_signal[DAC_Time_Index] = results[0]
-            read_time[DAC_Time_Index] = time.time()
-            DAC_Time_Index += 1    
+            read_signal[DAC_Sampl_Index], read_time[DAC_Sampl_Index] = DAQ_Read()
+            DAC_Sampl_Index += 1    
         
-        SB_Full_Records[:,Spec_Time_Index] = SB_Current_Record[:]
-        #plt.plot(SB_Current_Record[1:])
-        #plt.pause(1)
-        Spec_Time_Index += 1
+        SB_Full_Records[:,Spec_Sampl_Index] = SB_Current_Record[:]
+        Spec_Sampl_Index += 1
         
-
+        '''### An if statement to check if the spectrometer is stalled #### '''
+        if P2.is_alive():
+            P2.terminate()
+            print "############################################################"    
+            print "Recording failed, spectrumeter is stalled. Disconnect both spectromer and the DAQ and rerun the code."
+            break
+        
+    ''' ########### Saving the recorded signals in HDF5 format ############ '''
     Spec_intensities = f.create_dataset('Spectrumeter/Intensities', data = SB_Full_Records)
     Spec_intensities = f.create_dataset('DAQT7/DAC_Readings', data = read_signal)
     Spec_intensities = f.create_dataset('DAQT7/DAC_Time_Stamps', data = read_time)
     f.close()
+        
 
-SB.Close(Spec_handle)
-DAQ.Close(DAQ_handle)
+    SB.Close(Spec_handle)
+    DAQ.Close(DAQ_handle)
 
+    time_end = time.time()
+    print 'Duration of the session: %.3f s' %(time_end - time_start)
