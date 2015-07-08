@@ -45,7 +45,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-f = h5py.File('Opterode_RecordingAt1435804384.hdf5','r')
+f = h5py.File('Opterode_Recording_8msOnly_At1435883339.hdf5','r')
 
 ks = f.keys()
 
@@ -61,6 +61,8 @@ Wavelength = np.array(f[ks[1]].values()[2])
 DAC_Reading = f[ks[0]].values()[0]
 
 plt.plot(DAC_Reading)
+plt.plot(Intensities[1:,0][:])
+
 '''
 for index,key in enumerate(ks[:]):
     print index, key
