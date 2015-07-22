@@ -23,7 +23,7 @@ Intensities = spec.intensities(correct_dark_counts=True, correct_nonlinearity=Tr
 
 
 
-spec.trigger_mode(3)
+spec.trigger_mode(0)
 spec.integration_time_micros(10000)
 spec.wavelengths()
 
