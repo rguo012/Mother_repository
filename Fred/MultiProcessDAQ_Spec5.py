@@ -24,7 +24,7 @@ def Timer_Multi_Process(Time_In_Seconds):
     if Timer_Is_Done.value is 1:
         print 'Error: This timer can be run one at a time. Either the previous timer is still running, or Timer_Is_Done bit is reset from previous timer run'
     time.sleep(Time_In_Seconds)
-    Timer_Is_Done.value = 1 
+    Timer_Is_Done.value = 1
     
 
 # # A function for initializing the spectrometer (integration time and triggering mode '''
@@ -40,9 +40,9 @@ def SB_Read_Process(Spec_handle):
     Correct_dark_counts = True
     Correct_nonlinearity = True
     Intensities = SB.Read(Spec_handle, Correct_dark_counts, Correct_nonlinearity)   
-    #print Intensities 
+    #print Intensities
     SB_Current_Record[:] = Intensities
-    SB_Is_Done.value = 1 
+    SB_Is_Done.value = 1
     print "Intensities are read"
     return
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     No_DAC_Sample = 10000 # Number of samples for Photodiod per iteration of the laser exposer. Every sample takes ~3 ms.
     SB_Is_Done = Value('i', 0)
     SB_Current_Record = Array('f', np.zeros(shape=( len(Spec_handle.wavelengths()) ,1), dtype = float ))
-    SB_Is_Done.value = 0 
+    SB_Is_Done.value = 0
     Timer_Is_Done = Value('i', 0)    
     Timer_Is_Done.value = 0
     SB_Full_Records = np.zeros(shape=(len(Spec_handle.wavelengths()), len(Integration_list) ), dtype = float )
@@ -82,6 +82,9 @@ if __name__ == "__main__":
     
     
     # ########### The file containing the records (HDF5 format)###########'''
+    import os.path
+    Path_to_Records = os.path.abspath(os.path.join( os.getcwd(), os.pardir)) + "/Records"
+    os.chdir(Path_to_Records)
     File_name = "Opterode_Recording_At" + str('%i' %time.time())+ ".hdf5"
     f = h5py.File(File_name, "w")
     Spec_sub1 = f.create_group("Spectrumeter")
@@ -151,10 +154,11 @@ if __name__ == "__main__":
     time_end = time.time()
     print 'Duration of the session: %.3f s' %(time_end - time_start)
         
-    time.sleep(0.5) 
+    time.sleep(0.5)
     DAQ.DAC_Write(DAQ_handle, Laser_Port, 5)       #Laser is on
 
     SB.Close(Spec_handle)
     DAQ.Close(DAQ_handle)
-
     
+    Path_to_Fred_Codes = os.path.abspath(os.path.join( os.getcwd(), os.pardir)) + "/Fred"
+    os.chdir(Path_to_Fred_Codes)
