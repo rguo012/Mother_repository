@@ -7,6 +7,7 @@ from multiprocessing import Process, Pipe, Value, Array
 from labjack import ljm
 import SeaBreeze_Obj as SB
 import matplotlib.pyplot as plt
+import os.path
 time_start =  time.time()
 
 
@@ -81,7 +82,9 @@ if __name__ == "__main__":
     
     
     # ########### The file containing the records (HDF5 format)###########'''
-    File_name = "Opterode_Recording_8msOnly_At" + str('%i' %time.time())+ ".hdf5"
+    Path_to_Records = os.path.abspath(os.path.join( os.getcwd(), os.pardir)) + "/Records"
+    os.chdir(Path_to_Records)
+    File_name = "Opterode_Recording_At" + str('%i' %time.time())+ ".hdf5"
     f = h5py.File(File_name, "w")
     Spec_sub1 = f.create_group("Spectrumeter")
     Spec_specification = Spec_sub1.create_dataset("Spectrumeter", (10,), dtype='f')
@@ -167,3 +170,6 @@ if __name__ == "__main__":
     
     SB.Close(Spec_handle)
     DAQ.Close(DAQ_handle)
+
+    Path_to_Fred_Codes = os.path.abspath(os.path.join( os.getcwd(), os.pardir)) + "/Fred"
+    os.chdir(Path_to_Fred_Codes)
